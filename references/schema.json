@@ -1,0 +1,256 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CikuDeckV2.1",
+  "description": "ciku-skill v3.0 唯一权威业务契约；version=2.1 始终严格校验。",
+  "type": "object",
+  "required": [
+    "version",
+    "deckId",
+    "name",
+    "cards"
+  ],
+  "properties": {
+    "version": {
+      "const": "2.1",
+      "description": "固定数据版本"
+    },
+    "deckId": {
+      "type": "string",
+      "description": "题库唯一英文/拼音标识符",
+      "pattern": "^[a-z0-9][a-z0-9_-]{1,63}$"
+    },
+    "name": {
+      "type": "string",
+      "description": "题库展示名称"
+    },
+    "source": {
+      "type": "string",
+      "description": "来源文件名或资料出处"
+    },
+    "description": {
+      "type": "string",
+      "description": "题库简要说明"
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "组唯一ID，如 deckId-g01"
+          },
+          "name": {
+            "type": "string",
+            "description": "组名称或辨析主题"
+          },
+          "chapter": {
+            "type": "string",
+            "description": "所属章节（选填）"
+          },
+          "cardCount": {
+            "type": "integer",
+            "description": "本组卡片数量（必须与实际卡片数一致）",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "cards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "word",
+          "pinyin",
+          "tone",
+          "shortDef",
+          "mnemonic",
+          "sem",
+          "example"
+        ],
+        "description": "ciku-skill v3.0最终卡片契约；required字段缺失一律阻断。",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "卡片唯一ID，格式 ${deckId}-c001；迁移时保持不变（SRS 进度/收藏/错题无损延续）"
+          },
+          "deckId": {
+            "type": "string",
+            "description": "所属题库ID"
+          },
+          "groupId": {
+            "type": "string",
+            "description": "所属组ID（必须存在于 groups[].id）"
+          },
+          "word": {
+            "type": "string",
+            "maxLength": 8,
+            "minLength": 2,
+            "pattern": "^[\\u4e00-\\u9fa5]{2,8}$",
+            "description": "成语/词语名称（2~8 汉字，无序号、无 OCR 粘连，全库唯一）"
+          },
+          "pinyin": {
+            "type": "string",
+            "pattern": "[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]",
+            "description": "汉语拼音（必须带声调字母，禁空串）",
+            "minLength": 3
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "褒义",
+              "贬义",
+              "中性",
+              "褒贬兼有"
+            ],
+            "description": "感情色彩（归一枚举：偏褒义→褒义、偏贬义→贬义）"
+          },
+          "shortDef": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "一句话核心简明释义（≤20 字，卡片正面）",
+            "minLength": 1
+          },
+          "mnemonic": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "口诀（v2.1 新增，必填）：优先「信号词=本词」（= 右侧必须与 word 逐字相同），备选短语口诀（须含 word 原形）；禁与 shortDef 重复。用户参考案例：改制度、改大局=革故鼎新",
+            "minLength": 1
+          },
+          "sem": {
+            "type": "object",
+            "description": "语义要素拆解（五要素，AI 生成规范见 SKILL.md；五键必须存在，intensity 允许空串）",
+            "required": [
+              "action",
+              "intensity",
+              "object",
+              "focus",
+              "context"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "maxLength": 14,
+                "description": "词义核心动作/行为；状态类成语填状态特征",
+                "minLength": 1
+              },
+              "intensity": {
+                "type": "string",
+                "enum": [
+                  "轻",
+                  "中",
+                  "重"
+                ],
+                "description": "程度轻重三档，供辨析比较；无程度维度用空串"
+              },
+              "object": {
+                "type": "string",
+                "maxLength": 20,
+                "description": "适用对象/常见搭配（防对象误用陷阱）",
+                "minLength": 1
+              },
+              "focus": {
+                "type": "string",
+                "maxLength": 30,
+                "description": "语义侧重与常考方向；不含逐词对比",
+                "minLength": 1
+              },
+              "context": {
+                "type": "string",
+                "maxLength": 16,
+                "description": "适用语境/语体（书面语、政策语境等）",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "usage": {
+            "type": "string",
+            "maxLength": 60,
+            "description": "语法功能 + 常见搭配 + 误用陷阱（≤60 字为生成预算；运行时校验为 warning 软上限，迁移容忍）；不含逐词辨析（移入 confusions）、不重复感情色彩与侧重"
+          },
+          "confusions": {
+            "type": "array",
+            "maxItems": 4,
+            "description": "结构化易混辨析（每卡 1~3 条、硬上限 4）；diff 按三轴写法（核心=action/对象=object/力度=intensity）",
+            "items": {
+              "type": "object",
+              "required": [
+                "word",
+                "diff"
+              ],
+              "properties": {
+                "word": {
+                  "type": "string",
+                  "maxLength": 8,
+                  "minLength": 2,
+                  "description": "易混词（真实词项，2~8 汉字，禁释义片段）"
+                },
+                "diff": {
+                  "type": "string",
+                  "maxLength": 60,
+                  "description": "与本词的差异点（三轴写法：核心/对象/力度，先写差异最大轴）"
+                },
+                "tip": {
+                  "type": "string",
+                  "maxLength": 30,
+                  "description": "绝杀句（可选）：「场景信号→选词」，全角箭头分隔；用户参考案例：制度改革→革故鼎新；传统文化升级→推陈出新"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "example": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 80,
+            "description": "例句：恰好 1 条，20~80 字（下限 20、硬上限 80），句子自足、必含 word 原形，禁用 | 分隔，句内不含来源括号（迁出至 exampleSource）"
+          },
+          "exampleSource": {
+            "type": "string",
+            "description": "例句来源（真题年份/省份，如「2023 安徽」）；从句尾括号迁出"
+          },
+          "synonyms": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "string"
+            },
+            "description": "近义词（1~4 条真实成语/词语，宁少勿滥、禁凑数；禁释义片段与粘连串；排除 word 本身；生成禁令：禁止按同组成员填充（同主题≠近义）；validate_deck 落地：同组内 ≥2 卡 synonyms 列表相同 → error（v2.1.1 同组填充审查））"
+          },
+          "groupWords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "同组辨析词列表（组内双向闭环）"
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "string"
+            },
+            "description": "语义标签（1~3 个，如 工作态度/同质化；禁止取值为 tone 同文）"
+          },
+          "extra": {
+            "type": "object",
+            "description": "归档位（卡片 UI 永不展示）：moreExamples=多余例句（string[]，每条≤80字）；unmapped=无法归属的原文内容；legacyFullDef=迁移时原 fullDef 真增量归档",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}
