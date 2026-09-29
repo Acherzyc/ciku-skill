@@ -43,8 +43,26 @@ function checkCardId(deck) {
     if (typeof c.id !== 'string' || !c.id) { err(`/cards/${i} 缺少 id`); return; }
     if (seen.has(c.id)) err(`card.id 重复: ${c.id}`);
     seen.add(c.id);
-    const re = new RegExp('^' + deck.deckId + '-c\\d{3,4}$');
-    if (!re.test(c.id)) err(`card.id 格式不符（应为 <deckId>-c0001）: ${c.id}`);
+    // 小程序的 importer 会自动为缺失前缀的 card.id 补 \`<deckId>-\` 前缀，故这里只要求：
+    //   (a) 形如 <任意前缀>-c<3~4 位数字>，且 (b) 前缀与 deckId 一致（deckId 含中文时允许英文短前缀，如 lj400）。
+    const m = /^(.+)-c\d{3,4}$/.exec(c.id);
+    if (!m) {
+      err(`card.id 格式不符（应为 <deckId>-c0001）: ${c.id}`);
+    } else {
+      const prefix = m[1];
+      const deckIdHasCJK = /[\u4e00-\u9fa5]/.test(deck.deckId || '');
+      if (prefix !== deck.deckId) {
+        // deckId 为纯 ASCII 时必须逐字相同；仅当 deckId 含汉字（内置题库形态，如「逻辑填空400词…」配 lj400- 前缀）
+        // 才允许使用英文短前缀，且需给 warning 提示便于人工确认。
+        if (!deckIdHasCJK) {
+          err(`card.id 前缀须等于 deckId（${deck.deckId}），当前: ${c.id}`);
+        } else if (!/^[a-z0-9_-]{2,32}$/.test(prefix)) {
+          err(`card.id 前缀非法（应为 deckId 或英文短标识）: ${c.id}`);
+        } else {
+          warn(`card.id 使用英文短前缀 "${prefix}"（deckId 为中文 "${deck.deckId}"），请确认对应关系正确`);
+        }
+      }
+    }
   });
 }
 
@@ -222,7 +240,11 @@ function main() {
 
   if (deck.version !== '2.1') err(`version 必须为 "2.1"（当前 "${deck.version}"）`);
   if (!deck.deckId || typeof deck.deckId !== 'string') err('缺少 deckId');
-  else if (!/^[a-z0-9_-]{2,64}$/.test(deck.deckId)) err(`deckId 须为小写英文/数字/下划线/连字符: "${deck.deckId}"`);
+  // deckId 允许：小写英文/数字/下划线/连字符（新题库推荐），或纯中文（内置题库如「逻辑填空400词11300748」）。
+  // 统一禁止空白、斜杠、路径分隔符等会破坏存储键的字符。
+  // 中文题库常为「汉字+数字」组合（如「逻辑填空400词11300748」），故中文形态允许附带数字。
+  else if (!/^[a-z0-9_-]{2,64}$/.test(deck.deckId) && !/^[\u4e00-\u9fa5][\u4e00-\u9fa5\d]{1,31}$/.test(deck.deckId))
+    err(`deckId 须为小写英文/数字/下划线/连字符（2~64），或以汉字开头、由汉字与数字组成（2~32）: "${deck.deckId}"`);
   if (!deck.name) err('缺少 name');
   if (!Array.isArray(deck.cards) || deck.cards.length === 0) err('cards 为空或缺失');
 
