@@ -1,9 +1,9 @@
 ---
 name: ciku-skill
-description: 公考成语/实词词条型PDF到微信小程序v2.1题库JSON的轻量提取规格（v4.1.0-lite）。零依赖：无需 Python 与任何第三方包，PDF 一律渲染后视觉直读（绝对视觉识别 · 禁止任何 OCR），内置实战版面噪声清洗规则（水印/跨页断句/串扰句/误词条）、sem五要素与mnemonic/confusions生成规范、八项质检清单；附零依赖Node机检脚本（可选）。
+description: 公考成语/实词词条型PDF到微信小程序v2.1题库JSON的轻量提取规格（v4.1.1-lite）。零依赖：无需 Python 与任何第三方包，PDF 一律渲染后视觉直读（绝对视觉识别 · 禁止任何 OCR），内置实战版面噪声清洗规则（水印/跨页断句/串扰句/误词条/填空横线残留）、sem五要素与mnemonic/confusions生成规范、八项质检清单；附零依赖Node机检脚本（可选）。
 ---
 
-# ciku-skill v4.1.0-lite（绝对视觉识别 · 禁止 OCR · 零依赖）
+# ciku-skill v4.1.1-lite（绝对视觉识别 · 禁止 OCR · 零依赖）
 
 公考成语/实词**词条型** PDF → 微信小程序《成语辨析记忆》v2.1 标准 JSON 题库。
 
@@ -41,6 +41,7 @@ description: 公考成语/实词词条型PDF到微信小程序v2.1题库JSON的�
 | N4 | 行/栏串扰 | 双栏、表格单元格内容串行 | 一个单元格内容只允许归入一个字段；无法归属 → `extra.unmapped`，**禁止**拼进 example/shortDef |
 | N5 | 版式残留标记 | `……【真题例句】`、多例句 `\|` 分隔 | 清除标记；多例句只保留 1 条，其余高价值句存 `extra.moreExamples` |
 | N6 | 例句被误当词条 | 提取出的"词"是 8 字以上句子片段（如「伴随着新质生产力」） | 实测某 PDF 570 候选中 167 个（29%）属此类——**凡 word 不是真实词语即丢弃** |
+| N7 | 原文填空横线残留 | 例句/释义里带连续下划线（`______`）或 `（  ）`，说明原句是被挖空的题面 | 丢弃该残句；example 必须完整自足且含 word 原形，**任何字段都不得出现连续下划线** |
 
 ### Step 4 字段提取映射
 
@@ -116,7 +117,7 @@ node scripts/validate_deck.js <deck.json>
 5. sem 五要素齐备、intensity ∈ 轻/中/重（**无空串**）
 6. example 恰好 1 条、20~80 字、含词原形、无 `|`、无来源括号残留
 7. confusions ≤4、diff ≤60、tip ≤30；组内 synonyms 列表零雷同
-8. groupWords 闭环、cardCount 一致、全文无「学员专用」类水印残留（全文 grep 复查）
+8. groupWords 闭环、cardCount 一致、全文无「学员专用」类水印残留、无连续下划线残留（全文 grep 复查）
 
 ### Step 8 交付
 

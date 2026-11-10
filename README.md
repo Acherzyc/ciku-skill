@@ -1,4 +1,4 @@
-# ciku-skill v4.0.0-lite
+# ciku-skill v4.1.1-lite
 
 公考成语/实词**词条型** PDF → 微信小程序《成语辨析记忆》v2.1 标准 JSON 题库。
 
